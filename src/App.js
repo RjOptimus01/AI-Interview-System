@@ -171,10 +171,7 @@ const UserProfilePage = ({ currentUser, userData, gamification, sessionHistory, 
       <div className={pageIntroClass}>
         <p className="eyebrow-label">User Profile</p>
         <h2 className="mt-3 text-3xl font-black text-[var(--app-text)]">{`${currentUser?.firstName || "User"} ${currentUser?.lastName || ""}`.trim()}</h2>
-        <p className="mt-3 muted-copy">
-          Manage your PERFEXA profile, personal information, profile picture, and skills in one place.
-        </p>
-      </div>
+        </div>
 
       <form onSubmit={handleSubmit} className="grid gap-6 xl:grid-cols-[0.85fr,1.15fr]">
         <div className="space-y-6">
