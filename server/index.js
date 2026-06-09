@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
+const path = require("path");
 const {
   buildATSResponse,
   buildResumeResponse,
@@ -20,6 +21,11 @@ const upload = multer({
 
 app.use(cors());
 app.use(express.json({ limit: "5mb" }));
+
+if (process.env.NODE_ENV === "production") {
+  const buildPath = path.join(__dirname, "..", "build");
+  app.use(express.static(buildPath));
+}
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "ai-interview-system-api" });
@@ -98,6 +104,13 @@ app.post("/api/interview/ats-score", async (req, res) => {
     return res.status(500).json({ error: error.message || "Failed to analyze resume for ATS." });
   }
 });
+
+if (process.env.NODE_ENV === "production") {
+  const buildPath = path.join(__dirname, "..", "build");
+  app.get(/.*/, (_req, res) => {
+    res.sendFile(path.join(buildPath, "index.html"));
+  });
+}
 
 app.listen(port, () => {
   console.log(`AI Interview System API running on http://localhost:${port}`);
