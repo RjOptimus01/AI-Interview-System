@@ -2,6 +2,10 @@
 
 AI Interview System is a full-stack interview preparation platform built with React and Express. It helps candidates upload resumes, generate personalized HR and technical interview questions, practice answers, review feedback, check ATS readiness, and track progress with ranks and XP.
 
+## Live Demo
+
+https://ai-interview-system-0win.onrender.com/
+
 ## Features
 
 - Resume upload and parsing for `.pdf`, `.docx`, and `.txt` files.
