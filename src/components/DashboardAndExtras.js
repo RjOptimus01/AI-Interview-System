@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { AlertCircle, Award, Briefcase, CheckCircle, FileSearch, Upload, Users } from "lucide-react";
+import { AlertCircle, Award, Briefcase, CheckCircle, FileSearch, Flame, Shield, Sparkles, Upload, Users } from "lucide-react";
 import { analyzeATSResume, uploadResumeFile } from "../utils/interviewApi";
 import {
   ErrorBanner,
@@ -14,6 +14,7 @@ import {
   cleanSkills,
   formatDateTime,
 } from "./SharedUI";
+import { getBadgeMeta, getDailyChallengeStatus } from "../utils/gamification";
 
 const CATEGORY_META = [
   { key: "formatting", label: "Formatting", accent: "from-slate-800 to-slate-600" },
@@ -482,12 +483,10 @@ export const ATSChecker = ({ userData, saveUserData }) => {
   );
 };
 
-export const ScoringDashboard = ({ sessionHistory }) => {
+export const ScoringDashboard = ({ sessionHistory, gamification, dailyChallenge, onStartDailyChallenge, nextRank }) => {
   const [selectedSession, setSelectedSession] = useState(null);
 
   const overallScore = Math.round(average(sessionHistory.map((session) => session.score || 0)));
-  const averageRatingValue = average(sessionHistory.map((session) => session.rating || 0));
-  const averageRating = Number.isFinite(averageRatingValue) ? averageRatingValue.toFixed(1) : "0.0";
   const questionsAnswered = sessionHistory.reduce((sum, session) => sum + (session.questions || 0), 0);
   const typeCounts = sessionHistory.reduce(
     (accumulator, session) => ({
@@ -496,25 +495,139 @@ export const ScoringDashboard = ({ sessionHistory }) => {
     }),
     {}
   );
+  const currentBadge = getBadgeMeta(gamification.currentRank);
+  const challengeStatus = getDailyChallengeStatus(gamification, dailyChallenge);
+  const xpToNextRank = nextRank ? Math.max(0, nextRank.minXp - gamification.totalXp) : 0;
 
   return (
     <div className="space-y-6">
       <div className="rounded-[2rem] bg-white p-8 shadow-xl ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
-        <h2 className="text-3xl font-black text-slate-900 dark:text-slate-100">Performance Dashboard</h2>
-        <p className="mt-3 text-slate-600 dark:text-slate-300">Track every completed interview session and review detailed reports anytime.</p>
+        <h2 className="text-3xl font-black text-slate-900 dark:text-slate-100">Progress and Gamification</h2>
+        <p className="mt-3 text-slate-600 dark:text-slate-300">
+          Track your completed interview sessions, XP growth, current rank, earned badges, and daily challenge streak.
+        </p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-4">
         <StatCard value={overallScore || 0} label="Average Score" accent="from-indigo-600 to-slate-900" />
         <StatCard value={sessionHistory.length} label="Total Sessions" accent="from-cyan-500 to-blue-600" />
         <StatCard value={questionsAnswered} label="Questions Answered" accent="from-emerald-500 to-green-600" />
-        <StatCard value={averageRating} label="Average Rating" accent="from-amber-500 to-orange-600" />
+        <StatCard value={gamification.totalXp} label="Total XP" accent="from-amber-500 to-orange-600" />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="rounded-[2rem] bg-white p-6 shadow-xl ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-sm uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Daily Challenge</p>
+              <h3 className="mt-2 text-2xl font-bold text-slate-900 dark:text-slate-100">{dailyChallenge.title}</h3>
+              <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{dailyChallenge.description}</p>
+            </div>
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                challengeStatus === "completed_today"
+                  ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-200"
+                  : challengeStatus === "missed"
+                  ? "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-200"
+                  : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200"
+              }`}
+            >
+              {challengeStatus === "completed_today" ? "Completed Today" : challengeStatus === "missed" ? "Streak Needs Recovery" : "Available Today"}
+            </span>
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-3">
+            <ScoreChip label="Challenge Type" value={dailyChallenge.interviewType} tone="blue" />
+            <ScoreChip label="Mode" value={dailyChallenge.sessionMode === "camera" ? "Camera" : "Voice Only"} tone="emerald" />
+            <ScoreChip label="Date" value={dailyChallenge.dateKey} />
+          </div>
+
+          <button onClick={onStartDailyChallenge} className="primary-button mt-5">
+            Start Daily Challenge
+          </button>
+        </div>
+
+        <div className="rounded-[2rem] bg-white p-6 shadow-xl ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
+          <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Rank Snapshot</h3>
+          <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-1">
+            <div className="rounded-3xl bg-slate-50 p-5 dark:bg-slate-800">
+              <div className="flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
+                <Shield className="h-4 w-4" />
+                Current rank
+              </div>
+              <div className="mt-3 text-3xl font-black text-slate-900 dark:text-slate-100">{gamification.currentRank}</div>
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{currentBadge.badgeLabel}</p>
+            </div>
+            <div className="rounded-3xl bg-slate-50 p-5 dark:bg-slate-800">
+              <div className="flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
+                <Flame className="h-4 w-4" />
+                Streak status
+              </div>
+              <div className="mt-3 text-3xl font-black text-slate-900 dark:text-slate-100">{gamification.currentStreak}</div>
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Longest streak: {gamification.longestStreak}</p>
+            </div>
+            <div className="rounded-3xl bg-slate-50 p-5 dark:bg-slate-800">
+              <div className="flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
+                <Sparkles className="h-4 w-4" />
+                Next milestone
+              </div>
+              <div className="mt-3 text-xl font-black text-slate-900 dark:text-slate-100">{nextRank ? nextRank.name : "Diamond maxed"}</div>
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                {nextRank ? `${xpToNextRank} XP until promotion` : "You have reached the top rank."}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
         <TypeCountCard title="HR" count={typeCounts.HR || 0} icon={<Users className="h-5 w-5" />} />
         <TypeCountCard title="Technical" count={typeCounts.Technical || 0} icon={<Briefcase className="h-5 w-5" />} />
         <TypeCountCard title="Combined" count={typeCounts.Combined || 0} icon={<Award className="h-5 w-5" />} />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="rounded-[2rem] bg-white p-6 shadow-xl ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
+          <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Badges</h3>
+          <div className="mt-5 flex flex-wrap gap-3">
+            {gamification.earnedBadges.map((badgeName) => (
+              <div
+                key={badgeName}
+                className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold ${
+                  badgeName === gamification.currentRank
+                    ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                    : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                }`}
+              >
+                {getBadgeMeta(badgeName).imagePath ? (
+                  <img src={getBadgeMeta(badgeName).imagePath} alt={`${badgeName} badge`} className="h-10 w-10 rounded-xl object-cover" />
+                ) : null}
+                <span>{getBadgeMeta(badgeName).badgeLabel}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-[2rem] bg-white p-6 shadow-xl ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
+          <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Recent XP Activity</h3>
+          {gamification.xpHistory.length ? (
+            <div className="mt-5 space-y-3">
+              {[...gamification.xpHistory].slice(-5).reverse().map((item, index) => (
+                <div key={`${item.awardedAt}-${index}`} className="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-800">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">+{item.xpAwarded} XP</span>
+                    <span className="text-xs uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{formatDateTime(item.awardedAt)}</span>
+                  </div>
+                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                    {item.rewardType === "first_session" ? "First session bonus" : item.dailyChallengeId ? "Daily challenge reward" : "Completed session reward"} • Score {item.sessionScore}/100
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-5 text-sm text-slate-500 dark:text-slate-400">No XP events yet. Finish a session to populate this timeline.</p>
+          )}
+        </div>
       </div>
 
       <div className="rounded-[2rem] bg-white p-6 shadow-xl ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
@@ -529,7 +642,8 @@ export const ScoringDashboard = ({ sessionHistory }) => {
                   <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3">Mode</th>
                   <th className="px-4 py-3">Score</th>
-                  <th className="px-4 py-3">Rating</th>
+                  <th className="px-4 py-3">XP</th>
+                  <th className="px-4 py-3">Rank</th>
                   <th className="px-4 py-3">Actions</th>
                 </tr>
               </thead>
@@ -541,7 +655,8 @@ export const ScoringDashboard = ({ sessionHistory }) => {
                     <td className="px-4 py-4">{session.type}</td>
                     <td className="px-4 py-4">{session.sessionMode === "camera" ? "Camera" : "Voice Only"}</td>
                     <td className="px-4 py-4">{session.score}/100</td>
-                    <td className="px-4 py-4">{session.rating}/10</td>
+                    <td className="px-4 py-4">{session.xpAwarded ? `+${session.xpAwarded}` : "-"}</td>
+                    <td className="px-4 py-4">{session.rankAfterSession || "-"}</td>
                     <td className="px-4 py-4">
                       <button onClick={() => setSelectedSession(session)} className="secondary-button">
                         View Report

@@ -3,16 +3,20 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { FilesetResolver, FaceLandmarker } from "@mediapipe/tasks-vision";
 import {
   AlertCircle,
+  Award,
   Camera,
   CameraOff,
   CheckCircle,
   ChevronRight,
+  Flame,
   Mic,
   MicOff,
   Play,
+  Sparkles,
   Upload,
 } from "lucide-react";
 import { evaluateInterview, generateInterviewQuestions, uploadResumeFile } from "../utils/interviewApi";
+import { applySessionRewards, normalizeUserData } from "../utils/gamification";
 import {
   ErrorBanner,
   FeedbackList,
@@ -226,6 +230,61 @@ const ResultsView = ({ candidateProfile, interviewType, result, resumeFileName, 
         <div className="mt-2 text-sm font-medium text-white/80">Average Rating / 10</div>
       </div>
     </div>
+    {result.rewardSummary ? (
+      <div className="rounded-[2rem] bg-white p-6 shadow-xl ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="text-sm uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Session Reward</p>
+            <h3 className="mt-2 text-2xl font-bold text-slate-900 dark:text-slate-100">
+              {result.rewardSummary.rewardType === "first_session" ? "First session bonus unlocked" : "Progress updated"}
+            </h3>
+            <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+              {result.rewardSummary.dailyChallengeTitle
+                ? `This run counted as today's daily challenge: ${result.rewardSummary.dailyChallengeTitle}.`
+                : "This was saved as a regular interview session."}
+            </p>
+          </div>
+          <div className="rounded-3xl bg-slate-50 px-5 py-4 text-center dark:bg-slate-800">
+            <p className="text-xs uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">XP Earned</p>
+            <p className="mt-2 text-3xl font-black text-slate-900 dark:text-slate-100">+{result.rewardSummary.xpAwarded}</p>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-4">
+          <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800">
+            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">
+              <Sparkles className="h-4 w-4" />
+              Total XP
+            </p>
+            <p className="mt-2 text-xl font-black text-slate-900 dark:text-slate-100">{result.rewardSummary.totalXp}</p>
+          </div>
+          <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800">
+            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">
+              <Award className="h-4 w-4" />
+              Rank
+            </p>
+            <p className="mt-2 text-xl font-black text-slate-900 dark:text-slate-100">{result.rewardSummary.currentRank}</p>
+          </div>
+          <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800">
+            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">
+              <Flame className="h-4 w-4" />
+              Streak
+            </p>
+            <p className="mt-2 text-xl font-black text-slate-900 dark:text-slate-100">{result.rewardSummary.currentStreak}</p>
+          </div>
+          <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800">
+            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">Unlocks</p>
+            <p className="mt-2 text-sm font-bold text-slate-900 dark:text-slate-100">
+              {result.rewardSummary.badgeUnlocked
+                ? `${result.rewardSummary.badgeUnlocked} badge earned`
+                : result.rewardSummary.countedForStreak
+                ? "Daily streak counted"
+                : "No new unlock"}
+            </p>
+          </div>
+        </div>
+      </div>
+    ) : null}
     {result.cameraSummary?.enabled ? (
       <div className="rounded-[2rem] bg-white p-6 shadow-xl ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
         <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Camera Monitoring Summary</h3>
@@ -345,14 +404,26 @@ const ResultsView = ({ candidateProfile, interviewType, result, resumeFileName, 
   </div>
 );
 
-export const InterviewPractice = ({ currentUser, saveUserData, addSessionToHistory }) => {
-  const [step, setStep] = useState("upload");
+export const InterviewPractice = ({
+  currentUser,
+  userData,
+  saveUserData,
+  addSessionToHistory,
+  saveInterviewProgress,
+  launchContext,
+  onLaunchContextConsumed,
+}) => {
+  const normalizedUserData = normalizeUserData(userData || {});
+  const latestResumeFileName = normalizedUserData.latestResumeFileName || normalizedUserData.latestCandidateProfile?.fileName || "";
+  const latestResumeText = normalizedUserData.latestResumeText || "";
+  const latestCandidateProfile = normalizedUserData.latestCandidateProfile || null;
+  const [step, setStep] = useState(latestCandidateProfile ? "select" : "upload");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
-  const [resumeUpload, setResumeUpload] = useState(null);
-  const [rawResumeText, setRawResumeText] = useState("");
-  const [candidateProfile, setCandidateProfile] = useState(null);
+  const [resumeUpload, setResumeUpload] = useState(latestResumeFileName ? { fileName: latestResumeFileName } : null);
+  const [rawResumeText, setRawResumeText] = useState(latestResumeText);
+  const [candidateProfile, setCandidateProfile] = useState(latestCandidateProfile);
   const [interviewType, setInterviewType] = useState("");
   const [sessionMode, setSessionMode] = useState("");
   const [showInstructionsModal, setShowInstructionsModal] = useState(false);
@@ -379,6 +450,10 @@ export const InterviewPractice = ({ currentUser, saveUserData, addSessionToHisto
   const [compatibilityChecking, setCompatibilityChecking] = useState(false);
   const [compatibilityPassed, setCompatibilityPassed] = useState(false);
   const [compatibilityMessage, setCompatibilityMessage] = useState("Run the compatibility check before starting the session.");
+  const [activeChallenge, setActiveChallenge] = useState(launchContext?.dailyChallenge || null);
+  const [sessionChallengeContext, setSessionChallengeContext] = useState(null);
+  const isChallengeConfigured =
+    activeChallenge && activeChallenge.interviewType === interviewType && activeChallenge.sessionMode === sessionMode;
   const answerStartRef = useRef(null);
   const answerCameraStartRef = useRef({
     warningCount: 0,
@@ -396,6 +471,23 @@ export const InterviewPractice = ({ currentUser, saveUserData, addSessionToHisto
   const cameraStatsRef = useRef(createInitialCameraStats());
   // The tracker should restart only when camera mode, stream, or interview step changes.
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!launchContext) {
+      return;
+    }
+
+    if (launchContext.dailyChallenge) {
+      setActiveChallenge(launchContext.dailyChallenge);
+      setInterviewType(launchContext.interviewType);
+      setSessionMode(launchContext.sessionMode);
+      if (latestCandidateProfile) {
+        setStep("select");
+      }
+    }
+
+    onLaunchContextConsumed?.();
+  }, [launchContext, latestCandidateProfile, onLaunchContextConsumed]);
+
   useEffect(() => {
     if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -541,6 +633,8 @@ export const InterviewPractice = ({ currentUser, saveUserData, addSessionToHisto
     setCurrentAnswer("");
     setAnswers([]);
     setInterviewResult(null);
+    setActiveChallenge(null);
+    setSessionChallengeContext(null);
     setIsRecording(false);
     setRecordingSessions(0);
     setTranscriptUpdates(0);
@@ -855,7 +949,9 @@ export const InterviewPractice = ({ currentUser, saveUserData, addSessionToHisto
       setRawResumeText(payload.rawText);
       setCandidateProfile(payload.candidateProfile);
       setStep("select");
-      setSessionMode("");
+      if (!activeChallenge) {
+        setSessionMode("");
+      }
       setShowInstructionsModal(false);
 
       await saveUserData({
@@ -910,7 +1006,16 @@ export const InterviewPractice = ({ currentUser, saveUserData, addSessionToHisto
     setLoading(true);
     setError("");
     setShowInstructionsModal(false);
-    setStatusMessage(sessionMode === "camera" ? "Preparing camera and generating interview questions..." : "Generating 10 resume-based questions...");
+    setSessionChallengeContext(
+      activeChallenge && activeChallenge.interviewType === interviewType && activeChallenge.sessionMode === sessionMode ? activeChallenge : null
+    );
+    setStatusMessage(
+      activeChallenge && activeChallenge.interviewType === interviewType && activeChallenge.sessionMode === sessionMode
+        ? "Preparing today's daily challenge and generating interview questions..."
+        : sessionMode === "camera"
+        ? "Preparing camera and generating interview questions..."
+        : "Generating 10 resume-based questions..."
+    );
 
     try {
       if (sessionMode === "camera") {
@@ -1089,10 +1194,18 @@ export const InterviewPractice = ({ currentUser, saveUserData, addSessionToHisto
         questions,
         answers: nextAnswers,
       });
+      const completedAt = new Date().toISOString();
+      const rewardUpdate = applySessionRewards({
+        gamification: normalizedUserData.gamification,
+        sessionScore: result.overallScore,
+        completedAt,
+        dailyChallenge: sessionChallengeContext,
+      });
 
       const cameraSummary = buildCameraSummary();
       const finalResult = {
         ...result,
+        rewardSummary: rewardUpdate.rewardSummary,
         cameraSummary,
         questionByQuestionAnalysis: result.questionByQuestionAnalysis.map((analysis, index) => ({
           ...analysis,
@@ -1103,8 +1216,8 @@ export const InterviewPractice = ({ currentUser, saveUserData, addSessionToHisto
       setInterviewResult(finalResult);
       setStep("results");
 
-      await addSessionToHistory({
-        date: new Date().toISOString(),
+      const sessionRecord = {
+        date: completedAt,
         userEmail: currentUser?.email || "",
         candidateName: candidateProfile?.fullName || `${currentUser?.firstName || ""} ${currentUser?.lastName || ""}`.trim(),
         resumeFileName: resumeUpload?.fileName || "",
@@ -1117,7 +1230,24 @@ export const InterviewPractice = ({ currentUser, saveUserData, addSessionToHisto
         rating: finalResult.rating,
         questions: questions.length,
         result: finalResult,
-      });
+        ...rewardUpdate.sessionReward,
+      };
+
+      if (saveInterviewProgress) {
+        await saveInterviewProgress({
+          session: sessionRecord,
+          userDataPatch: {
+            gamification: rewardUpdate.gamification,
+            latestCompletedSessionAt: completedAt,
+          },
+        });
+      } else {
+        await saveUserData({
+          gamification: rewardUpdate.gamification,
+          latestCompletedSessionAt: completedAt,
+        });
+        await addSessionToHistory(sessionRecord);
+      }
 
       stopCameraStream();
     } catch (evaluationError) {
@@ -1165,6 +1295,31 @@ export const InterviewPractice = ({ currentUser, saveUserData, addSessionToHisto
           <div className="rounded-[2rem] bg-white p-6 shadow-xl ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
             {(step === "upload" || step === "select") && (
               <div className="space-y-6">
+                {activeChallenge ? (
+                  <section className="rounded-3xl border border-cyan-200 bg-cyan-50 p-5 dark:border-cyan-500/30 dark:bg-cyan-500/10">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <p className="text-sm uppercase tracking-[0.2em] text-cyan-700 dark:text-cyan-300">Daily Challenge Active</p>
+                        <h3 className="mt-2 text-2xl font-bold text-slate-900 dark:text-slate-100">{activeChallenge.title}</h3>
+                        <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{activeChallenge.description}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.18em]">
+                        <span className="rounded-full bg-white px-3 py-2 text-cyan-700 dark:bg-slate-900 dark:text-cyan-200">
+                          {activeChallenge.interviewType}
+                        </span>
+                        <span className="rounded-full bg-white px-3 py-2 text-cyan-700 dark:bg-slate-900 dark:text-cyan-200">
+                          {activeChallenge.sessionMode === "camera" ? "Camera" : "Voice Only"}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="mt-4 text-sm font-medium text-cyan-700 dark:text-cyan-200">
+                      {isChallengeConfigured
+                        ? "Your current setup matches the daily challenge. Completing this run will count toward your streak."
+                        : "Your current setup no longer matches the daily challenge, so this run will be saved as a regular session."}
+                    </p>
+                  </section>
+                ) : null}
+
                 <section className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center dark:border-slate-700 dark:bg-slate-800">
                   <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900">
                     <Upload className="h-7 w-7" />
@@ -1220,7 +1375,7 @@ export const InterviewPractice = ({ currentUser, saveUserData, addSessionToHisto
                     </div>
 
                     <button onClick={openInstructionModal} disabled={!INTERVIEW_TYPES.includes(interviewType) || !SESSION_MODES.includes(sessionMode)} className="primary-button disabled:opacity-50">
-                      Review Instructions & Start
+                      {isChallengeConfigured ? "Review Instructions & Start Daily Challenge" : "Review Instructions & Start"}
                     </button>
                   </section>
                 ) : null}
