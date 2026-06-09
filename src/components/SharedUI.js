@@ -22,7 +22,22 @@ export function initials(name = "") {
 }
 
 export function cleanSkills(skills = []) {
-  return skills.filter(Boolean).slice(0, 8);
+  return normalizeList(skills).slice(0, 8);
+}
+
+export function normalizeList(items = []) {
+  if (Array.isArray(items)) {
+    return items.map((item) => String(item).trim()).filter(Boolean);
+  }
+
+  if (typeof items === "string") {
+    return items
+      .split(/[\n,;]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
 }
 
 export const BRAND_NAME = "PERFEXA";
@@ -111,42 +126,50 @@ export const SummaryRow = ({ label, value }) => (
   </div>
 );
 
-export const TagList = ({ title, items, emptyLabel }) => (
-  <div>
-    {title ? <h4 className="text-sm font-semibold text-[var(--app-text)]">{title}</h4> : null}
-    {items?.length ? (
-      <div className="mt-3 flex flex-wrap gap-2">
-        {items.map((item) => (
-          <span
-            key={item}
-            className="rounded-full border border-[rgba(255,210,74,0.24)] bg-[rgba(255,210,74,0.12)] px-3 py-1 text-xs font-semibold text-[var(--app-accent)]"
-          >
-            {item}
-          </span>
-        ))}
-      </div>
-    ) : (
-      <p className="mt-3 text-sm muted-copy">{emptyLabel}</p>
-    )}
-  </div>
-);
+export const TagList = ({ title, items, emptyLabel }) => {
+  const normalizedItems = normalizeList(items);
 
-export const SimpleList = ({ title, items, emptyLabel }) => (
-  <div>
-    {title ? <h4 className="text-sm font-semibold text-[var(--app-text)]">{title}</h4> : null}
-    {items?.length ? (
-      <ul className="mt-3 space-y-2">
-        {items.map((item, index) => (
-          <li key={`${item}-${index}`} className={`${subtleSurfaceClass} px-4 py-3 text-sm text-[var(--app-text)]`}>
-            {item}
-          </li>
-        ))}
-      </ul>
-    ) : (
-      <p className="mt-3 text-sm muted-copy">{emptyLabel}</p>
-    )}
-  </div>
-);
+  return (
+    <div>
+      {title ? <h4 className="text-sm font-semibold text-[var(--app-text)]">{title}</h4> : null}
+      {normalizedItems.length ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {normalizedItems.map((item) => (
+            <span
+              key={item}
+              className="rounded-full border border-[rgba(255,210,74,0.24)] bg-[rgba(255,210,74,0.12)] px-3 py-1 text-xs font-semibold text-[var(--app-accent)]"
+            >
+              {item}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-3 text-sm muted-copy">{emptyLabel}</p>
+      )}
+    </div>
+  );
+};
+
+export const SimpleList = ({ title, items, emptyLabel }) => {
+  const normalizedItems = normalizeList(items);
+
+  return (
+    <div>
+      {title ? <h4 className="text-sm font-semibold text-[var(--app-text)]">{title}</h4> : null}
+      {normalizedItems.length ? (
+        <ul className="mt-3 space-y-2">
+          {normalizedItems.map((item, index) => (
+            <li key={`${item}-${index}`} className={`${subtleSurfaceClass} px-4 py-3 text-sm text-[var(--app-text)]`}>
+              {item}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-3 text-sm muted-copy">{emptyLabel}</p>
+      )}
+    </div>
+  );
+};
 
 export const InfoPanel = ({ title, items }) => (
   <div className={`${surfaceClass} p-6`}>
@@ -178,6 +201,8 @@ export const FeatureCard = ({ icon, title, description }) => (
 );
 
 export const FeedbackList = ({ title, icon, tone, items }) => {
+  const normalizedItems = normalizeList(items);
+
   const toneClasses = {
     green: "soft-status-success text-emerald-100 dark:text-emerald-200",
     red: "soft-status-danger text-red-100 dark:text-red-200",
@@ -190,8 +215,8 @@ export const FeedbackList = ({ title, icon, tone, items }) => {
         {title}
       </div>
       <ul className="mt-4 space-y-3">
-        {items?.length ? (
-          items.map((item, index) => (
+        {normalizedItems.length ? (
+          normalizedItems.map((item, index) => (
             <li key={`${item}-${index}`} className="rounded-2xl bg-black/20 px-4 py-3 text-sm text-white/90 dark:bg-black/20">
               {item}
             </li>
@@ -220,23 +245,27 @@ export const ScoreBadge = ({ label, value, tone }) => {
   );
 };
 
-export const MiniPanel = ({ title, items, fallback }) => (
-  <div className={`${subtleSurfaceClass} p-4`}>
-    <p className="text-sm font-semibold text-[var(--app-text)]">{title}</p>
-    {items?.length ? (
-      <ul className="mt-2 space-y-2 text-sm muted-copy">
-        {items.map((item, index) => (
-          <li key={`${item}-${index}`} className="flex items-start gap-2">
-            <span className="mt-1 h-2 w-2 rounded-full bg-[var(--app-accent)]" />
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
-    ) : (
-      <p className="mt-2 text-sm muted-copy">{fallback}</p>
-    )}
-  </div>
-);
+export const MiniPanel = ({ title, items, fallback }) => {
+  const normalizedItems = normalizeList(items);
+
+  return (
+    <div className={`${subtleSurfaceClass} p-4`}>
+      <p className="text-sm font-semibold text-[var(--app-text)]">{title}</p>
+      {normalizedItems.length ? (
+        <ul className="mt-2 space-y-2 text-sm muted-copy">
+          {normalizedItems.map((item, index) => (
+            <li key={`${item}-${index}`} className="flex items-start gap-2">
+              <span className="mt-1 h-2 w-2 rounded-full bg-[var(--app-accent)]" />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-2 text-sm muted-copy">{fallback}</p>
+      )}
+    </div>
+  );
+};
 
 export const TypeCountCard = ({ title, count, icon }) => (
   <div className={`${surfaceClass} p-5`}>
