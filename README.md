@@ -1,70 +1,156 @@
-# Getting Started with Create React App
+# AI Interview System
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+AI Interview System is a full-stack interview preparation platform built with React and Express. It helps candidates upload resumes, generate personalized HR and technical interview questions, practice answers, review feedback, check ATS readiness, and track progress with ranks and XP.
+
+## Features
+
+- Resume upload and parsing for `.pdf`, `.docx`, and `.txt` files.
+- Candidate profile extraction from resume content.
+- Personalized HR, technical, and combined interview question generation.
+- Answer evaluation with question-by-question feedback, strengths, weaknesses, and improvement suggestions.
+- ATS resume scoring with keyword analysis, section checks, formatting checks, and prioritized fixes.
+- Progress dashboard with session history, daily challenges, ranks, badges, and XP.
+- User authentication and profile management stored locally in the browser.
+- Light and dark theme support.
+- Interview course and preparation sections.
+
+## Tech Stack
+
+- Frontend: React 18, Create React App, Tailwind CSS, Lucide React
+- Backend: Node.js, Express, Multer
+- Resume parsing: Mammoth, pdf-parse
+- Data sources: CSV and Parquet interview question datasets
+- AI provider: OpenRouter API
+- Local state: Browser storage wrapper in `src/utils/storage.js`
+
+## Project Structure
+
+```text
+ai-interview-system/
+  public/                 Static assets
+  server/
+    data/                 Interview datasets
+    services/             Resume, question, evaluation, and ATS logic
+    index.js              Express API server
+  src/
+    components/           React UI components
+    utils/                API, storage, and gamification helpers
+    App.js                Main application shell and routing state
+    App.css               Main application styling
+  package.json            Scripts and dependencies
+```
+
+## Prerequisites
+
+- Node.js 18 or newer
+- npm
+- OpenRouter API key
+
+## Environment Variables
+
+Create a `.env` file in the project root. The file is intentionally ignored by Git.
+
+```env
+OPENROUTER_API_KEY=your_openrouter_api_key
+REACT_APP_OPENROUTER_API_KEY=your_openrouter_api_key
+OPENROUTER_MODEL=openai/gpt-4o-mini
+REACT_APP_MODEL_NAME=openai/gpt-4o-mini
+APP_ORIGIN=http://localhost:3000
+PORT=5000
+```
+
+Notes:
+
+- `OPENROUTER_API_KEY` is used by the backend API.
+- `REACT_APP_OPENROUTER_API_KEY` is used by frontend helper code if called directly.
+- `OPENROUTER_MODEL` and `REACT_APP_MODEL_NAME` are optional; defaults are provided in the code.
+
+## Installation
+
+```bash
+npm install
+```
+
+## Running Locally
+
+Start the frontend and backend together:
+
+```bash
+npm run dev
+```
+
+The app runs at:
+
+- Frontend: `http://localhost:3000`
+- Backend API: `http://localhost:5000`
+
+You can also run them separately:
+
+```bash
+npm run server
+npm start
+```
 
 ## Available Scripts
 
-In the project directory, you can run:
+```bash
+npm start
+```
 
-### `npm start`
+Runs the React frontend.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```bash
+npm run server
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+Runs the Express backend on port `5000` by default.
 
-### `npm test`
+```bash
+npm run dev
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Runs frontend and backend together with `concurrently`.
 
-### `npm run build`
+```bash
+npm test
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Runs the React test runner.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```bash
+npm run build
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Creates a production frontend build in the `build/` folder.
 
-### `npm run eject`
+## API Endpoints
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/api/health` | Checks backend health. |
+| `POST` | `/api/interview/resume` | Uploads and parses a resume file. |
+| `POST` | `/api/interview/questions` | Generates interview questions from resume data. |
+| `POST` | `/api/interview/evaluate` | Evaluates submitted interview answers. |
+| `POST` | `/api/interview/ats-score` | Scores resume ATS readiness. |
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Resume and Dataset Support
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+The backend reads local datasets from `server/data/`, including CSV and Parquet files. These datasets are used to improve question selection and provide fallback behavior when AI generation is unavailable.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Supported resume formats:
 
-## Learn More
+- PDF
+- DOCX
+- TXT
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Maximum upload size is `10 MB`.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## GitHub Notes
 
-### Code Splitting
+- `.env` is ignored and should not be committed.
+- `node_modules/` and production `build/` output are ignored.
+- Commit source files, dataset files, public assets, and documentation needed to run the project.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## License
 
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+This project is currently private and does not define a public license.
