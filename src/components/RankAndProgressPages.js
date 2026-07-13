@@ -222,7 +222,6 @@ export const RankPage = ({ gamification, dailyChallenge, onStartDailyChallenge }
               <div>
                 <p className="text-sm uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Daily Challenge</p>
                 <h3 className="mt-2 text-2xl font-bold text-slate-900 dark:text-slate-100">{dailyChallenge.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{dailyChallenge.description}</p>
               </div>
               <ChallengeStatusPill status={challengeStatus} />
             </div>
@@ -285,9 +284,6 @@ export const ProgressPage = ({ sessionHistory, gamification, dailyChallenge, onS
     <div className="space-y-6">
       <div className="rounded-[2rem] bg-white p-8 shadow-xl ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
         <h2 className="text-3xl font-black text-slate-900 dark:text-slate-100">Progress Overview</h2>
-        <p className="mt-3 text-slate-600 dark:text-slate-300">
-          Review your score trends, interview activity, XP growth, recent rewards, and the momentum of your preparation.
-        </p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-4">
@@ -300,11 +296,10 @@ export const ProgressPage = ({ sessionHistory, gamification, dailyChallenge, onS
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-[2rem] bg-white p-6 shadow-xl ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <p className="text-sm uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Daily Challenge</p>
-              <h3 className="mt-2 text-2xl font-bold text-slate-900 dark:text-slate-100">{dailyChallenge.title}</h3>
-              <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{dailyChallenge.description}</p>
-            </div>
+              <div>
+                <p className="text-sm uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Daily Challenge</p>
+                <h3 className="mt-2 text-2xl font-bold text-slate-900 dark:text-slate-100">{dailyChallenge.title}</h3>
+              </div>
             <ChallengeStatusPill status={challengeStatus} />
           </div>
 

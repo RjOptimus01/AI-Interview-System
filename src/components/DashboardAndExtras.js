@@ -521,7 +521,6 @@ export const ScoringDashboard = ({ sessionHistory, gamification, dailyChallenge,
             <div>
               <p className="text-sm uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Daily Challenge</p>
               <h3 className="mt-2 text-2xl font-bold text-slate-900 dark:text-slate-100">{dailyChallenge.title}</h3>
-              <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{dailyChallenge.description}</p>
             </div>
             <span
               className={`rounded-full px-3 py-1 text-xs font-semibold ${

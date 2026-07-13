@@ -111,7 +111,6 @@ export const HomePage = ({ currentUser, setCurrentPage, sessionHistory, gamifica
                 <div>
                   <p className="eyebrow-label">Today's Challenge</p>
                   <h2 className="mt-3 text-2xl font-black text-[var(--app-text)]">{dailyChallenge.title}</h2>
-                  <p className="mt-3 text-sm leading-6 muted-copy">{dailyChallenge.description}</p>
                 </div>
                 <ChallengeStatePill status={dailyChallengeStatus} />
               </div>

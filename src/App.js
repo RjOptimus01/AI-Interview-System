@@ -10,6 +10,7 @@ import {
   Home,
   LogOut,
   Mail,
+  Menu,
   Mic,
   Moon,
   Phone,
@@ -18,10 +19,11 @@ import {
   Sun,
   TrendingUp,
   User,
+  X,
 } from "lucide-react";
 import { LoginPage, SignupPage } from "./components/AuthPages";
 import { ATSChecker, InterviewCourses } from "./components/DashboardAndExtras";
-import { HomePage } from "./components/HomePage";
+import { PersonalDashboard } from "./components/PersonalDashboard";
 import { InterviewPractice } from "./components/InterviewPractice";
 import { ProgressPage, RankPage } from "./components/RankAndProgressPages";
 import { BrandMark, initials, pageIntroClass, subtleSurfaceClass, surfaceClass } from "./components/SharedUI";
@@ -39,8 +41,8 @@ const NavButton = ({ label, icon, active, onClick }) => (
     onClick={onClick}
     className={`app-nav-button ${active ? "app-nav-button--active" : ""}`}
   >
-    {icon}
-    {label}
+    <span className="app-nav-button__icon">{icon}</span>
+    <span>{label}</span>
   </button>
 );
 
@@ -51,12 +53,68 @@ const quickActionCards = [
   { key: "courses", label: "Courses", icon: <BookOpen className="h-6 w-6" />, accent: "from-violet-300 to-indigo-600", page: "courses", description: "Prep tracks" },
 ];
 
+const navigationItems = [
+  { key: "home", label: "Dashboard", icon: <Home className="h-5 w-5" /> },
+  { key: "interview", label: "Interview", icon: <Mic className="h-5 w-5" /> },
+  { key: "ats", label: "ATS Checker", icon: <FileText className="h-5 w-5" /> },
+  { key: "progress", label: "Progress", icon: <BarChart3 className="h-5 w-5" /> },
+  { key: "rank", label: "Rank Center", icon: <Award className="h-5 w-5" /> },
+  { key: "courses", label: "Courses", icon: <BookOpen className="h-5 w-5" /> },
+  { key: "profile", label: "Profile", icon: <User className="h-5 w-5" /> },
+];
+
+const pageTitles = {
+  home: "Personal Dashboard",
+  interview: "Interview Practice",
+  ats: "ATS Checker",
+  progress: "Progress Overview",
+  rank: "Rank Center",
+  courses: "Interview Courses",
+  profile: "Profile Settings",
+};
+
 const menuItems = [
   { key: "progress", label: "Open Progress", icon: <BarChart3 className="h-5 w-5" />, page: "progress" },
   { key: "rank", label: "Open Rank Center", icon: <Award className="h-5 w-5" />, page: "rank" },
   { key: "ats", label: "ATS Checker", icon: <FileText className="h-5 w-5" />, page: "ats" },
   { key: "settings", label: "Profile Settings", icon: <Settings className="h-5 w-5" />, page: "profile" },
 ];
+
+const SideNavigation = ({ currentPage, onNavigate, onLogout, compact = false }) => (
+  <div className={`app-sidebar-content ${compact ? "app-sidebar-content--drawer" : ""}`}>
+    {!compact ? (
+      <button type="button" className="app-sidebar-brand" onClick={() => onNavigate("home")}>
+        <BrandMark compact />
+      </button>
+    ) : null}
+
+    <div className="app-sidebar-section">
+      <p className="app-sidebar-label">Menu</p>
+      <div className="app-sidebar-links">
+        {navigationItems.map((item) => (
+          <NavButton
+            key={item.key}
+            label={item.label}
+            icon={item.icon}
+            active={currentPage === item.key}
+            onClick={() => onNavigate(item.key)}
+          />
+        ))}
+      </div>
+    </div>
+
+    <div className="app-sidebar-footer">
+      <div className="app-sidebar-tip">
+        <p className="text-sm font-bold text-[var(--app-text)]">Daily prep loop</p>
+        <p className="mt-2 text-xs leading-5 muted-copy">Practice, review, improve, and keep your streak alive.</p>
+      </div>
+      <button type="button" onClick={onLogout} className="app-nav-button app-nav-button--danger">
+        <span className="app-nav-button__icon"><LogOut className="h-5 w-5" /></span>
+        <span>Logout</span>
+      </button>
+    </div>
+  </div>
+);
 
 const QuickActionCard = ({ label, icon, accent, description, onClick }) => (
   <button
@@ -343,6 +401,7 @@ const AIInterviewSystem = () => {
   const [sessionHistory, setSessionHistory] = useState([]);
   const [interviewLaunchContext, setInterviewLaunchContext] = useState(null);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
 
   useEffect(() => {
@@ -420,6 +479,26 @@ const AIInterviewSystem = () => {
       document.removeEventListener("keydown", handleEscape);
     };
   }, [isUserMenuOpen]);
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) {
+      return undefined;
+    }
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleEscape);
+    document.body.classList.add("app-drawer-open");
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      document.body.classList.remove("app-drawer-open");
+    };
+  }, [isMobileMenuOpen]);
 
   const toggleTheme = async () => {
     const nextTheme = theme === "dark" ? "light" : "dark";
@@ -565,6 +644,7 @@ const AIInterviewSystem = () => {
     setCurrentPage("home");
     setAuthPage("login");
     setIsUserMenuOpen(false);
+    setIsMobileMenuOpen(false);
   };
 
   const gamification = normalizeUserData(userData || {}).gamification;
@@ -590,6 +670,13 @@ const AIInterviewSystem = () => {
   const openMenuPage = (pageName) => {
     setCurrentPage(pageName);
     setIsUserMenuOpen(false);
+    setIsMobileMenuOpen(false);
+  };
+
+  const navigateToPage = (pageName) => {
+    setCurrentPage(pageName);
+    setIsMobileMenuOpen(false);
+    setIsUserMenuOpen(false);
   };
 
   if (!isAuthenticated) {
@@ -601,8 +688,9 @@ const AIInterviewSystem = () => {
   }
 
   let page = (
-    <HomePage
+    <PersonalDashboard
       currentUser={currentUser}
+      userData={userData}
       setCurrentPage={setCurrentPage}
       sessionHistory={sessionHistory}
       gamification={gamification}
@@ -654,21 +742,36 @@ const AIInterviewSystem = () => {
 
   return (
     <div className="app-shell transition-colors">
-      <nav className="app-nav px-4 py-4 sm:px-6 lg:px-8">
-        <div className="app-nav__inner mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
-          <button className="flex items-center gap-3" onClick={() => setCurrentPage("home")}>
-            <BrandMark compact />
-          </button>
+      {isMobileMenuOpen ? (
+        <div className="app-drawer-layer" aria-hidden={!isMobileMenuOpen}>
+          <button type="button" className="app-drawer-backdrop" aria-label="Close menu" onClick={() => setIsMobileMenuOpen(false)} />
+          <aside className="app-mobile-drawer" aria-label="Main menu">
+            <div className="flex items-center justify-between gap-3 px-5 pt-5">
+              <BrandMark compact />
+              <button type="button" className="app-icon-button" aria-label="Close menu" onClick={() => setIsMobileMenuOpen(false)}>
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <SideNavigation currentPage={currentPage} onNavigate={navigateToPage} onLogout={handleLogout} compact />
+          </aside>
+        </div>
+      ) : null}
 
-          <div className="hidden items-center gap-2 md:flex">
-            <NavButton label="Home" active={currentPage === "home"} icon={<Home className="h-4 w-4" />} onClick={() => setCurrentPage("home")} />
-            <NavButton label="Interview" active={currentPage === "interview"} icon={<Mic className="h-4 w-4" />} onClick={() => setCurrentPage("interview")} />
-            <NavButton label="ATS" active={currentPage === "ats"} icon={<FileText className="h-4 w-4" />} onClick={() => setCurrentPage("ats")} />
-            <NavButton label="Progress" active={currentPage === "progress"} icon={<BarChart3 className="h-4 w-4" />} onClick={() => setCurrentPage("progress")} />
-            <NavButton label="Courses" active={currentPage === "courses"} icon={<BookOpen className="h-4 w-4" />} onClick={() => setCurrentPage("courses")} />
+      <div className="app-workspace">
+        <header className="app-topbar">
+          <div className="flex min-w-0 items-center gap-3">
+            <button type="button" className="app-icon-button" aria-label="Open menu" onClick={() => setIsMobileMenuOpen(true)}>
+              <Menu className="h-5 w-5" />
+            </button>
+            <div className="min-w-0">
+              <p className="app-topbar-kicker">Perfexa Workspace</p>
+              <h1 className="truncate text-xl font-black text-[var(--app-text)] sm:text-2xl">
+                {pageTitles[currentPage] || "Workspace"}
+              </h1>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <button
               onClick={toggleTheme}
               className="theme-toggle-button inline-flex items-center gap-2 px-4 py-3 text-sm font-medium"
@@ -757,10 +860,10 @@ const AIInterviewSystem = () => {
               ) : null}
             </div>
           </div>
-        </div>
-      </nav>
+        </header>
 
-      <main className="main-content-shell mx-auto px-4 py-8 sm:px-6 lg:px-8">{page}</main>
+        <main className="main-content-shell mx-auto w-full px-4 py-6 sm:px-6 lg:px-8">{page}</main>
+      </div>
     </div>
   );
 };

@@ -23,7 +23,7 @@ const DAILY_CHALLENGE_VARIANTS = [
     titles: ["Technical Sprint", "Problem Solving Push", "Builder's Round"],
     descriptions: [
       "A technical daily challenge centered on project reasoning, fundamentals, and implementation tradeoffs.",
-      "A score-focused technical session to practice debugging, tools, and system thinking.",
+      "",
       "A daily technical round built to tighten explanation quality and practical reasoning.",
     ],
   },
