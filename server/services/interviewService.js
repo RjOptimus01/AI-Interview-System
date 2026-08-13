@@ -776,6 +776,106 @@ function datasetQuestionToInterviewQuestion(row, id, type = "Technical") {
   };
 }
 
+function hasAnyTerm(text = "", terms = []) {
+  const normalized = safeLower(text);
+  return terms.some((term) => normalized.includes(term));
+}
+
+function isQuestionAllowedForInterviewType(question = {}, interviewType = "Technical") {
+  if (interviewType === "Combined") {
+    return Boolean(question.question);
+  }
+
+  const text = `${question.question || ""} ${question.focusArea || ""}`;
+  const technicalTerms = [
+    "algorithm",
+    "api",
+    "architecture",
+    "backend",
+    "bug",
+    "code",
+    "coding",
+    "database",
+    "debug",
+    "deploy",
+    "frontend",
+    "implementation",
+    "java",
+    "javascript",
+    "library",
+    "node",
+    "python",
+    "react",
+    "sql",
+    "technical",
+    "technology",
+    "tool",
+  ];
+  const hrTerms = [
+    "adapt",
+    "behavior",
+    "career",
+    "challenge",
+    "communication",
+    "confidence",
+    "conflict",
+    "criticism",
+    "deadline",
+    "environment",
+    "feedback",
+    "goal",
+    "lead",
+    "motivat",
+    "priority",
+    "pressure",
+    "strength",
+    "team",
+    "weakness",
+    "work closely",
+  ];
+
+  const hasTechnicalSignal = hasAnyTerm(text, technicalTerms);
+  const hasHrSignal = hasAnyTerm(text, hrTerms);
+
+  if (interviewType === "HR") {
+    return hasHrSignal || !hasTechnicalSignal;
+  }
+
+  return hasTechnicalSignal || !hasHrSignal;
+}
+
+function normalizeQuestionSetForInterviewType(aiQuestions = [], fallback = [], interviewType = "Technical") {
+  const seen = new Set();
+  const normalized = [];
+  const candidates = [
+    ...aiQuestions.filter((question) => isQuestionAllowedForInterviewType(question, interviewType)),
+    ...fallback,
+  ];
+
+  for (const question of candidates) {
+    const text = normalizeWhitespace(question.question || "");
+    if (!text) continue;
+
+    const key = safeLower(text);
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    normalized.push({
+      ...question,
+      id: `q-${normalized.length + 1}`,
+      question: text,
+      type: interviewType,
+      focusArea: question.focusArea || (interviewType === "HR" ? "behavioral" : "technical"),
+    });
+
+    if (normalized.length >= 10) {
+      break;
+    }
+  }
+
+  return normalized.length === 10 ? normalized : fallback;
+}
+
 function buildTechnicalQuestionSet(profile, rawText, count = 10) {
   const datasetRows = selectDatasetQuestions(profile, rawText, "Technical", count);
   const templateRows = technicalQuestionTemplates(profile).map((question, index) =>
@@ -1873,7 +1973,7 @@ async function buildQuestionResponse(candidateProfile, rawText, interviewType) {
   try {
     const aiQuestions = await generateQuestionsWithAI(candidateProfile, rawText, interviewType);
     if (aiQuestions.length === 10) {
-      return { questions: aiQuestions };
+      return { questions: normalizeQuestionSetForInterviewType(aiQuestions, fallback, interviewType) };
     }
   } catch (error) {
     return { questions: fallback };
