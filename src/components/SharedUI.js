@@ -25,9 +25,35 @@ export function cleanSkills(skills = []) {
   return normalizeList(skills).slice(0, 8);
 }
 
+export function formatListItem(item) {
+  if (item === null || item === undefined) {
+    return "";
+  }
+
+  if (typeof item !== "object") {
+    return String(item).trim();
+  }
+
+  const parts = [
+    item.title,
+    item.name,
+    item.project,
+    item.description,
+    item.summary,
+    Array.isArray(item.technologies) ? item.technologies.join(", ") : item.technologies,
+    item.techStack,
+    item.role,
+    item.outcome,
+  ]
+    .map((part) => String(part || "").trim())
+    .filter(Boolean);
+
+  return parts.length ? [...new Set(parts)].join(" - ") : "";
+}
+
 export function normalizeList(items = []) {
   if (Array.isArray(items)) {
-    return items.map((item) => String(item).trim()).filter(Boolean);
+    return items.map(formatListItem).filter(Boolean);
   }
 
   if (typeof items === "string") {
@@ -278,3 +304,4 @@ export const TypeCountCard = ({ title, count, icon }) => (
     </div>
   </div>
 );
+

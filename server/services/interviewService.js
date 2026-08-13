@@ -124,6 +124,42 @@ function uniqueItems(items = []) {
   return [...new Set(items.map((item) => item.trim()).filter(Boolean))];
 }
 
+function normalizeProfileList(items = []) {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  return uniqueItems(
+    items
+      .map((item) => {
+        if (item === null || item === undefined) {
+          return "";
+        }
+
+        if (typeof item !== "object") {
+          return String(item).trim();
+        }
+
+        const parts = [
+          item.title,
+          item.name,
+          item.project,
+          item.description,
+          item.summary,
+          Array.isArray(item.technologies) ? item.technologies.join(", ") : item.technologies,
+          item.techStack,
+          item.role,
+          item.outcome,
+        ]
+          .map((part) => String(part || "").trim())
+          .filter(Boolean);
+
+        return parts.length ? [...new Set(parts)].join(" - ") : "";
+      })
+      .filter(Boolean)
+  );
+}
+
 function roundNumber(value, digits = 1) {
   return Number(Number(value || 0).toFixed(digits));
 }
@@ -482,12 +518,12 @@ function profileSnapshot(profile = {}) {
     phone: profile.phone || "",
     location: profile.location || "",
     summary: profile.summary || "",
-    education: Array.isArray(profile.education) ? profile.education : [],
-    experience: Array.isArray(profile.experience) ? profile.experience : [],
-    skills: Array.isArray(profile.skills) ? profile.skills : [],
-    projects: Array.isArray(profile.projects) ? profile.projects : [],
-    certifications: Array.isArray(profile.certifications) ? profile.certifications : [],
-    achievements: Array.isArray(profile.achievements) ? profile.achievements : [],
+    education: normalizeProfileList(profile.education),
+    experience: normalizeProfileList(profile.experience),
+    skills: normalizeProfileList(profile.skills),
+    projects: normalizeProfileList(profile.projects),
+    certifications: normalizeProfileList(profile.certifications),
+    achievements: normalizeProfileList(profile.achievements),
     fileName: profile.fileName || "",
   };
 }
