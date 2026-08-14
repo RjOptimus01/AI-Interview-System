@@ -758,6 +758,181 @@ function technicalQuestionTemplates(profile) {
   ];
 }
 
+function normalizeQuestionText(question = "") {
+  return normalizeWhitespace(question).replace(/\s+/g, " ").trim();
+}
+
+function cleanQuestionItems(items = []) {
+  const seen = new Set();
+  return items
+    .map((item) => ({
+      ...item,
+      question: normalizeQuestionText(item.question || ""),
+    }))
+    .filter((item) => {
+      if (!item.question) return false;
+      const key = safeLower(item.question);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function createTechnicalQuestion(question, focusArea, bucket) {
+  return {
+    id: "",
+    question,
+    type: "Technical",
+    focusArea,
+    bucket,
+  };
+}
+
+function createProjectQuestions(projects = []) {
+  return cleanQuestionItems(
+    projects.flatMap((project, index) => {
+      const label = normalizeWhitespace(project).replace(/[.。]+$/g, "");
+      if (!label) return [];
+
+      return [
+        createTechnicalQuestion(
+          `Walk me through ${label}. What problem were you solving, what was your actual contribution, and how did the main flow work end to end?`,
+          "project architecture",
+          "project"
+        ),
+        createTechnicalQuestion(
+          `In ${label}, which implementation decision or trade-off was hardest, and why did you choose that approach over another option?`,
+          "project implementation decisions",
+          "project"
+        ),
+        createTechnicalQuestion(
+          `If I removed one important technology or module from ${label}, what would break first and how would you redesign that part?`,
+          "project depth check",
+          "project"
+        ),
+        createTechnicalQuestion(
+          `What was one bug, performance issue, or integration challenge you faced in ${label}, and how did you debug it?`,
+          "project debugging",
+          "project"
+        ),
+      ].slice(0, index === 0 ? 4 : 2);
+    })
+  );
+}
+
+function technicalSkillPriority(skill = "") {
+  const normalized = safeLower(skill);
+  if (/react/.test(normalized)) return 1;
+  if (/node|express|api/.test(normalized)) return 2;
+  if (/javascript|typescript/.test(normalized)) return 3;
+  if (/mongo|sql|database|dbms/.test(normalized)) return 4;
+  if (/\bjava\b|c\+\+|cpp|python/.test(normalized)) return 5;
+  if (/git|github/.test(normalized)) return 6;
+  if (/html|css|tailwind|bootstrap/.test(normalized)) return 7;
+  return 7;
+}
+
+function skillQuestionFor(skill = "") {
+  const normalized = safeLower(skill);
+  const label = normalizeWhitespace(skill);
+
+  if (/react/.test(normalized)) {
+    return `In a React feature from your resume, how would you decide component boundaries, manage state, and avoid unnecessary re-renders?`;
+  }
+  if (/node|express/.test(normalized)) {
+    return `When building an API with ${label}, how would you structure routes, middleware, validation, and error handling for maintainability?`;
+  }
+  if (/mongo/.test(normalized)) {
+    return `For MongoDB, how would you model related data, choose indexes, and avoid slow queries as the dataset grows?`;
+  }
+  if (/\bsql\b|mysql|postgres|database|dbms/.test(normalized)) {
+    return `Using ${label}, how would you design tables and queries to reduce duplication while still keeping reads efficient?`;
+  }
+  if (/javascript|typescript/.test(normalized)) {
+    return `In ${label}, how do async operations, closures, and error handling affect the reliability of a real application feature?`;
+  }
+  if (/\bjava\b/.test(normalized)) {
+    return `In Java, how would you use OOP concepts and exception handling to keep a backend module extensible and reliable?`;
+  }
+  if (/python/.test(normalized)) {
+    return `In Python, how would you structure a script or service so it is readable, testable, and handles bad input safely?`;
+  }
+  if (/c\+\+|cpp/.test(normalized)) {
+    return `In C++, how do memory management, references, and STL containers influence your implementation choices?`;
+  }
+  if (/html|css|tailwind|bootstrap/.test(normalized)) {
+    return `When using ${label}, how would you build a responsive UI that remains accessible and easy to maintain?`;
+  }
+  if (/api|rest/.test(normalized)) {
+    return `For REST API work, how would you design endpoints, status codes, authentication, and validation for a production feature?`;
+  }
+  if (/git|github|version/.test(normalized)) {
+    return `With ${label}, how would you handle branching, pull requests, and resolving conflicts during team development?`;
+  }
+  if (/machine learning|ml|ai/.test(normalized)) {
+    return `For ${label}, how would you choose features, evaluate model quality, and avoid overfitting in a practical project?`;
+  }
+
+  return `You listed ${label} on your resume. Describe a practical feature where you used it, the main design decision you made, and one limitation you had to handle.`;
+}
+
+function createSkillQuestions(skills = []) {
+  const prioritizedSkills = [...skills].sort((left, right) => {
+    const priorityDelta = technicalSkillPriority(left) - technicalSkillPriority(right);
+    return priorityDelta || String(left).localeCompare(String(right));
+  });
+
+  return cleanQuestionItems(
+    prioritizedSkills
+      .filter(Boolean)
+      .slice(0, 12)
+      .map((skill) => createTechnicalQuestion(skillQuestionFor(skill), `technical skill - ${skill}`, "skill"))
+  );
+}
+
+function createCoreComputerScienceQuestions(profile = {}) {
+  const skillText = safeLower((profile.skills || []).join(" "));
+  const coreQuestions = [
+    createTechnicalQuestion(
+      "Explain encapsulation, inheritance, polymorphism, and abstraction using a small example from an application you could build.",
+      "core cs - OOP",
+      "core"
+    ),
+    createTechnicalQuestion(
+      "Given a feature that searches or filters records, how would you choose between an array, hash map, stack, queue, or tree, and what time complexity would you expect?",
+      "core cs - DSA",
+      "core"
+    ),
+    createTechnicalQuestion(
+      "What happens when multiple processes or threads need the same resource, and how can deadlocks or race conditions be prevented?",
+      "core cs - operating systems",
+      "core"
+    ),
+    createTechnicalQuestion(
+      "In DBMS, how do normalization, indexing, and transactions affect correctness and performance?",
+      "core cs - DBMS",
+      "core"
+    ),
+    createTechnicalQuestion(
+      "When a browser or client calls a backend API, what are the main networking steps involved from request to response?",
+      "core cs - computer networks",
+      "core"
+    ),
+  ];
+
+  if (/sql|database|mongo|dbms/.test(skillText)) {
+    return cleanQuestionItems([coreQuestions[1], coreQuestions[3], coreQuestions[2], coreQuestions[4], coreQuestions[0]]);
+  }
+  if (/java|c\+\+|cpp|oop/.test(skillText)) {
+    return cleanQuestionItems([coreQuestions[0], coreQuestions[1], coreQuestions[2], coreQuestions[3], coreQuestions[4]]);
+  }
+  if (/node|express|api|react|javascript|typescript/.test(skillText)) {
+    return cleanQuestionItems([coreQuestions[4], coreQuestions[3], coreQuestions[1], coreQuestions[2], coreQuestions[0]]);
+  }
+
+  return cleanQuestionItems(coreQuestions);
+}
+
 function datasetQuestionToPromptItem(row) {
   return {
     question: row.question,
@@ -844,7 +1019,95 @@ function isQuestionAllowedForInterviewType(question = {}, interviewType = "Techn
   return hasTechnicalSignal || !hasHrSignal;
 }
 
-function normalizeQuestionSetForInterviewType(aiQuestions = [], fallback = [], interviewType = "Technical") {
+function getTechnicalQuestionBucket(question = {}, profile = {}) {
+  if (["project", "skill", "core"].includes(question.bucket)) {
+    return question.bucket;
+  }
+
+  const text = safeLower(`${question.question || ""} ${question.focusArea || ""}`);
+  const projectMatches = (profile.projects || []).some((project) => {
+    const projectText = safeLower(project);
+    const projectWords = projectText.split(/[^a-z0-9+#.]+/).filter((word) => word.length > 3);
+    return projectWords.length && projectWords.slice(0, 4).some((word) => text.includes(word));
+  });
+  if (projectMatches || /\bproject|architecture|contribution|trade-?off|implementation decision|debug/i.test(text)) {
+    return "project";
+  }
+
+  const skillMatches = (profile.skills || []).some((skill) => {
+    const normalizedSkill = safeLower(skill);
+    return normalizedSkill && text.includes(normalizedSkill);
+  });
+  if (skillMatches || /\breact|node|express|mongo|sql|javascript|typescript|java|python|c\+\+|api|html|css|git\b/i.test(text)) {
+    return "skill";
+  }
+
+  if (
+    /\boop|oops|object oriented|data structure|algorithm|complexity|operating system|process|thread|deadlock|dbms|normalization|transaction|index|network|tcp|http\b/i.test(
+      text
+    )
+  ) {
+    return "core";
+  }
+
+  return "skill";
+}
+
+function pickBucketQuestions(candidates = [], bucket, limit, profile = {}, seen = new Set()) {
+  const picked = [];
+
+  for (const question of candidates) {
+    if (picked.length >= limit) break;
+    if (getTechnicalQuestionBucket(question, profile) !== bucket) continue;
+
+    const text = normalizeQuestionText(question.question || "");
+    const key = safeLower(text);
+    if (!text || seen.has(key)) continue;
+
+    seen.add(key);
+    picked.push({
+      ...question,
+      question: text,
+      bucket,
+    });
+  }
+
+  return picked;
+}
+
+function normalizeTechnicalQuestionDistribution(aiQuestions = [], fallback = [], profile = {}) {
+  const hasProjects = Boolean((profile.projects || []).length);
+  const fallbackProjectCount = fallback.filter((question) => question.bucket === "project").length;
+  const projectCount = hasProjects ? clamp(fallbackProjectCount || 2, 2, 3) : 0;
+  const coreCount = hasProjects ? 3 : 4;
+  const skillCount = 10 - projectCount - coreCount;
+  const candidates = cleanQuestionItems([...aiQuestions, ...fallback]);
+  const seen = new Set();
+  const distributed = [
+    ...pickBucketQuestions(candidates, "project", projectCount, profile, seen),
+    ...pickBucketQuestions(candidates, "skill", skillCount, profile, seen),
+    ...pickBucketQuestions(candidates, "core", coreCount, profile, seen),
+  ];
+
+  if (distributed.length < 10) {
+    distributed.push(...pickBucketQuestions(fallback, "project", projectCount, profile, seen));
+    distributed.push(...pickBucketQuestions(fallback, "skill", skillCount, profile, seen));
+    distributed.push(...pickBucketQuestions(fallback, "core", coreCount, profile, seen));
+  }
+
+  return distributed.slice(0, 10).map((question, index) => ({
+    ...question,
+    id: `q-${index + 1}`,
+    type: "Technical",
+  }));
+}
+
+function normalizeQuestionSetForInterviewType(aiQuestions = [], fallback = [], interviewType = "Technical", profile = {}) {
+  if (interviewType === "Technical") {
+    const technicalQuestions = normalizeTechnicalQuestionDistribution(aiQuestions, fallback, profile);
+    return technicalQuestions.length === 10 ? technicalQuestions : fallback;
+  }
+
   const seen = new Set();
   const normalized = [];
   const candidates = [
@@ -877,23 +1140,47 @@ function normalizeQuestionSetForInterviewType(aiQuestions = [], fallback = [], i
 }
 
 function buildTechnicalQuestionSet(profile, rawText, count = 10) {
-  const datasetRows = selectDatasetQuestions(profile, rawText, "Technical", count);
-  const templateRows = technicalQuestionTemplates(profile).map((question, index) =>
-    createQuestion(index + 1, question, "Technical", TECH_FOCUS_AREAS[index] || "technical")
+  const projects = cleanQuestionItems((profile.projects || []).map((project) => ({ question: project }))).map(
+    (item) => item.question
   );
+  const skills = uniqueItems((profile.skills || []).map((skill) => normalizeWhitespace(skill))).slice(0, 12);
+  const projectQuestions = createProjectQuestions(projects);
+  const skillQuestions = createSkillQuestions(skills);
+  const coreQuestions = createCoreComputerScienceQuestions(profile);
 
-  const questions = datasetRows.map((row, index) => datasetQuestionToInterviewQuestion(row, index + 1, "Technical"));
-  const seen = new Set(questions.map((item) => safeLower(item.question)));
+  const projectCount = projectQuestions.length ? Math.min(3, Math.max(2, projectQuestions.length)) : 0;
+  const coreCount = projectCount ? 3 : 4;
+  const skillCount = Math.max(0, count - projectCount - coreCount);
+  const datasetBackfill = selectDatasetQuestions(profile, rawText, "Technical", count)
+    .filter((row) => {
+      const haystack = safeLower(`${row.question} ${row.category} ${row.answer}`);
+      return skills.some((skill) => haystack.includes(safeLower(skill)));
+    })
+    .map((row) => ({
+      ...datasetQuestionToInterviewQuestion(row, 0, "Technical"),
+      bucket: "skill",
+    }));
 
-  for (const item of templateRows) {
-    if (questions.length >= count) break;
-    const key = safeLower(item.question);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    questions.push({ ...item, id: `q-${questions.length + 1}` });
-  }
+  const selected = [
+    ...projectQuestions.slice(0, projectCount),
+    ...skillQuestions.slice(0, skillCount),
+    ...datasetBackfill.slice(0, Math.max(0, skillCount - skillQuestions.length)),
+    ...coreQuestions.slice(0, coreCount),
+  ];
 
-  return questions.slice(0, count);
+  const genericBackfill = [
+    ...technicalQuestionTemplates(profile).map((question, index) =>
+      createQuestion(index + 1, question, "Technical", TECH_FOCUS_AREAS[index] || "technical")
+    ),
+    ...coreQuestions,
+  ];
+
+  const questions = cleanQuestionItems([...selected, ...genericBackfill]).slice(0, count);
+  return questions.map((question, index) => ({
+    ...question,
+    id: `q-${index + 1}`,
+    type: "Technical",
+  }));
 }
 
 function buildHRQuestionSet(profile, rawText, count = 10) {
@@ -948,10 +1235,11 @@ ${JSON.stringify(datasetContext)}
 Rules:
 - exactly 10 questions
 - HR: behavioral and communication
-- Technical: technical, projects, problem-solving, and software-engineering fundamentals
+- Technical: exactly 2-3 questions about resume projects, 4-5 questions about resume-listed technical skills/tools, and 2-4 core computer-science questions across OOP/OOPS, DSA, OS, DBMS, and Computer Networks
 - Combined: 5 technical then 5 HR
 - for Technical and Combined, use the dataset context as a strong source of software-engineer question ideas
 - adapt dataset topics to the candidate's resume, skills, projects, and experience
+- for Technical, do not ask about projects or technologies that are not present in the resume
 - no duplicate questions
 - no generic filler questions unless grounded in resume content`,
     },
@@ -1973,7 +2261,7 @@ async function buildQuestionResponse(candidateProfile, rawText, interviewType) {
   try {
     const aiQuestions = await generateQuestionsWithAI(candidateProfile, rawText, interviewType);
     if (aiQuestions.length === 10) {
-      return { questions: normalizeQuestionSetForInterviewType(aiQuestions, fallback, interviewType) };
+      return { questions: normalizeQuestionSetForInterviewType(aiQuestions, fallback, interviewType, candidateProfile) };
     }
   } catch (error) {
     return { questions: fallback };
